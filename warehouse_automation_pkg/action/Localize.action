@@ -1,0 +1,13 @@
+# Goal (empty, just a trigger)
+---
+
+# Result
+bool success
+string status
+---
+
+# Feedback
+float64 cov_x
+float64 cov_y
+float64 cov_yaw
+string status
