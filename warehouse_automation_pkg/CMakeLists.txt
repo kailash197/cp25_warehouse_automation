@@ -11,7 +11,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Localize.action"
-  DEPENDENCIES geometry_msgs std_msgs
+  "srv/GlobalLocalization.srv"
+  DEPENDENCIES geometry_msgs std_msgs action_msgs
 )
 
 add_executable(global_localization_node src/global_localization.cpp)
@@ -19,6 +20,10 @@ ament_target_dependencies(global_localization_node
   rclcpp
   geometry_msgs
   std_srvs
+  std_srvs
+)
+target_link_libraries(global_localization_node
+  ${PROJECT_NAME}__rosidl_typesupport_cpp
 )
 
 add_executable(glocalization_as_node src/glocalization_as.cpp)
