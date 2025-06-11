@@ -7,6 +7,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(action_msgs REQUIRED)
+find_package(warehouse_automation_pkg)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -37,10 +38,27 @@ ament_target_dependencies(glocalization_as_node
 rosidl_target_interfaces(glocalization_as_node
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
+add_executable(client_glocalization_as_node src/client_glocalization_as.cpp)
+ament_target_dependencies(client_glocalization_as_node
+  rclcpp
+  rclcpp_action
+  std_msgs
+  action_msgs
+  action_msgs
+  warehouse_automation_pkg
+)
+
 install(TARGETS
   global_localization_node
   glocalization_as_node
+  client_glocalization_as_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 ament_package()
+
+

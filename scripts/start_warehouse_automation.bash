@@ -111,13 +111,13 @@ echo "Wait while pathplanner service is loading..."
 sleep 25
 echo "Pathplanner is running successfully. Proceeding..."
 
-# ==== Start Global Localization Action Server ====
+# ==== Start ROS2 nodes ====
 echo
-echo "Starting global localization service server"
+echo "Starting all ROS2 nodes"
 
 source ~/ros2_ws/install/setup.bash
-ros2 run warehouse_automation_pkg global_localization_node --ros-args -p env:=${ENV} \
-    > >(ts '[%Y%m%d%H%M%S]' > "$LOG_DIR/glocalization_service_${ENV}.log") 2>&1 &
+ros2 launch warehouse_automation_pkg warehouse_automation.launch.py env:=${ENV} \
+    > >(ts '[%Y%m%d%H%M%S]' > "$LOG_DIR/warehouse_nodes_${ENV}.log") 2>&1 &
 
 # ==== Clone webpage repository ====
 echo
@@ -132,11 +132,15 @@ echo "Rosbridge address:"
 echo "wss://${instance_id}.robotigniteacademy.com/${SLOT_PREFIX}/rosbridge/"
 
 # ==== Run rosbridge server ====
-echo
-echo "Launch rosbridge server"
-cd ~/ros2_ws
-ros2 launch rosbridge_server rosbridge_websocket_launch.xml \
-    > >(ts '[%Y%m%d%H%M%S]' >> "$LOG_DIR/webpage_${ENV}.log") 2>&1 &
-sleep 5
+if [ $ENV == "sim" ]; then
+    echo
+    echo "Launch rosbridge server"
+    cd ~/ros2_ws
+    source ~/ros2_ws/install/setup.bash
+    ros2 launch rosbridge_server rosbridge_websocket_launch.xml \
+        > >(ts '[%Y%m%d%H%M%S]' >> "$LOG_DIR/webpage_${ENV}.log") 2>&1 &
+    sleep 5
+fi
+
 
 echo "[!] All processes launched. Check logs in $LOG_DIR"

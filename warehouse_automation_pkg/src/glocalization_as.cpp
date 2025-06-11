@@ -20,9 +20,9 @@ class GlobalLocalization
     : public rclcpp::Node,
       public std::enable_shared_from_this<GlobalLocalization> {
 public:
-  GlobalLocalization() : Node("global_localization") {
+  GlobalLocalization() : Node("global_localization_node") {
 
-    std::string env = this->declare_parameter<std::string>("env", "real");
+    std::string env = this->declare_parameter<std::string>("env", "sim");
     std::string topic = (env == "sim")
                             ? "/diffbot_base_controller/cmd_vel_unstamped"
                             : "/cmd_vel";
@@ -42,7 +42,7 @@ public:
     timer_ = nullptr;
 
     action_server_ = rclcpp_action::create_server<Localize>(
-        this, "waretomation_localize",
+        this, "wh_global_localization",
         std::bind(&GlobalLocalization::handleGoal, this, std::placeholders::_1,
                   std::placeholders::_2),
         std::bind(&GlobalLocalization::handleCancel, this,
@@ -50,7 +50,8 @@ public:
         std::bind(&GlobalLocalization::handleAccepted, this,
                   std::placeholders::_1));
 
-    RCLCPP_INFO(this->get_logger(), "GlobalLocalization action server ready.");
+    RCLCPP_INFO(this->get_logger(),
+                "WH Global Localization action server ready.");
   }
 
 private:
@@ -136,7 +137,7 @@ private:
     feedback->status = "PROGRESS";
     active_goal_->publish_feedback(feedback);
 
-    if (cov_[0] < 0.07 && cov_[7] < 0.07 && cov_[35] < 0.07) {
+    if (cov_[0] < 0.1 && cov_[7] < 0.1 && cov_[35] < 0.1) {
       timer_->cancel();
       publishTwist(0.0);
       auto result = std::make_shared<Localize::Result>();

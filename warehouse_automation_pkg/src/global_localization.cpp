@@ -97,7 +97,8 @@ private:
     if (cov_.empty() || !amcl_updated)
       return;
 
-    if (cov_[0] < 0.07 && cov_[7] < 0.07 && cov_[35] < 0.07) {
+    // if (cov_[0] < 0.07 && cov_[7] < 0.07 && cov_[35] < 0.07) {
+    if (cov_[0] < 0.05 && cov_[7] < 0.05 && cov_[35] < 0.05) {
       publishTwist(0.0);
       RCLCPP_INFO(this->get_logger(), "Localization successful.");
       timer_->cancel();
