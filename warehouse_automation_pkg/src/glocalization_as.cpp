@@ -49,6 +49,9 @@ public:
                   std::placeholders::_1),
         std::bind(&GlobalLocalization::handleAccepted, this,
                   std::placeholders::_1));
+    fake_pose_pub_ =
+        this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+            "/initialpose", 10); // Standard topic AMCL listens to
 
     RCLCPP_INFO(this->get_logger(),
                 "WH Global Localization action server ready.");
@@ -66,6 +69,8 @@ private:
   bool amcl_updated_ = false;
   int counter_ = 0;
   //   GoalHandleLocalize::SharedPtr active_goal_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+      fake_pose_pub_;
 
   rclcpp_action::GoalResponse
   handleGoal(const rclcpp_action::GoalUUID &,
@@ -89,6 +94,8 @@ private:
   }
 
   void startLocalization() {
+    // Reset AMCL state
+    publishFakeHighCovariancePose();
     // Wait for the global localization service
     if (!client_->wait_for_service(3s)) {
       RCLCPP_ERROR(this->get_logger(),
@@ -107,6 +114,27 @@ private:
 
     timer_ = this->create_wall_timer(
         100ms, std::bind(&GlobalLocalization::spinRobot, this));
+  }
+
+  void publishFakeHighCovariancePose() {
+    geometry_msgs::msg::PoseWithCovarianceStamped msg;
+    msg.header.stamp = this->now();
+    msg.header.frame_id = "map";
+
+    // Position and orientation can be zero
+    msg.pose.pose.position.x = 0.0;
+    msg.pose.pose.position.y = 0.0;
+    msg.pose.pose.orientation.w = 1.0;
+
+    // Set very high covariance
+    msg.pose.covariance[0] = 100.0;  // x
+    msg.pose.covariance[7] = 100.0;  // y
+    msg.pose.covariance[35] = 100.0; // yaw
+
+    fake_pose_pub_->publish(msg);
+    rclcpp::sleep_for(std::chrono::seconds(1));
+    RCLCPP_INFO(this->get_logger(),
+                "Published fake high-covariance pose to /initialpose");
   }
 
   void spinRobot() {
@@ -152,6 +180,7 @@ private:
     geometry_msgs::msg::Twist twist;
     twist.angular.z = z;
     cmd_vel_pub_->publish(twist);
+    std::this_thread::sleep_for(200ms);
   }
 };
 
