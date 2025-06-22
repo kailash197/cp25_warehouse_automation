@@ -22,7 +22,7 @@ class GlobalLocalization
 public:
   GlobalLocalization() : Node("global_localization_node") {
 
-    std::string env = this->declare_parameter<std::string>("env", "sim");
+    env = this->declare_parameter<std::string>("env", "sim");
     std::string topic = (env == "sim")
                             ? "/diffbot_base_controller/cmd_vel_unstamped"
                             : "/cmd_vel";
@@ -58,6 +58,7 @@ public:
   }
 
 private:
+  std::string env;
   std::shared_ptr<GoalHandleLocalize> active_goal_;
   rclcpp_action::Server<Localize>::SharedPtr action_server_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
@@ -164,8 +165,10 @@ private:
     feedback->cov_yaw = cov_[35];
     feedback->status = "PROGRESS";
     active_goal_->publish_feedback(feedback);
-
-    if (cov_[0] < 0.1 && cov_[7] < 0.1 && cov_[35] < 0.1) {
+    float threshold = 0.15;
+    if (env == "sim")
+      threshold = 0.5;
+    if (cov_[0] < threshold && cov_[7] < threshold && cov_[35] < threshold) {
       timer_->cancel();
       publishTwist(0.0);
       auto result = std::make_shared<Localize::Result>();
