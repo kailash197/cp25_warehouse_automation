@@ -40,34 +40,9 @@ if [[ "$ENV" == "real" ]]; then
     echo "Welcome to the WAREHOUSE LAB!"
     USE_SIM_TIME=false
 else
+
     echo "Starting SIMULATION environment..."
     USE_SIM_TIME=true
-
-    MAX_ATTEMPTS=2
-    ATTEMPT=1
-    source ~/sim_ws/install/setup.bash
-
-    while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-        ros2 launch the_construct_office_gazebo warehouse_rb1.launch.xml > >(ts '[%Y%m%d%H%M%S]' > "$LOG_DIR/gazebo.log") 2>&1 &
-        echo "Wait while gazebo is loading..."
-        sleep 50
-        # check if gazebo is successful
-        controller_count=$(grep -c "Sucessfully loaded controller" "$LOG_DIR/gazebo.log")
-        if [ "$controller_count" -ge 3 ]; then
-            echo "Gazebo is running successfully. Proceeding..."
-            break
-        else
-            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS failed: Found $controller_count/3 controllers."
-            ((ATTEMPT++))
-            ps -ef | grep gazebo | grep -v grep | awk '{print $2}' | xargs -r kill -9
-            ps -ef | grep gz | grep -v grep | awk '{print $2}' | xargs -r kill -9
-            sleep 3
-        fi
-    done
-    if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
-        echo "Failed to start gazebo simulation. Abort..."
-        exit 1
-    fi
 fi
 
 # ==== LOCALIZATION SERVER ====
@@ -78,10 +53,10 @@ ATTEMPT=1
 
 while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
     cd ~/ros2_ws && source install/setup.bash
-    ros2 launch localization_server localization.launch.py map_file:=warehouse_map_keepout_${ENV}.yaml \
+    ros2 launch localization_server localization.launch.py map_file:=warehouse_map_keepout_${ENV}_project.yaml \
         > >(ts '[%Y%m%d%H%M%S]' > "$LOG_DIR/localization_${ENV}.log") 2>&1 &
     echo "Wait while localization service is loading..."
-    sleep 25
+    sleep 40
 
     count=$(grep -c "Please set the initial pose..." "$LOG_DIR/localization_${ENV}.log")
     if [ "$count" -ge 1 ]; then
@@ -116,7 +91,7 @@ echo
 echo "Starting all ROS2 nodes"
 
 source ~/ros2_ws/install/setup.bash
-ros2 launch warehouse_automation_pkg warehouse_automation.launch.py env:=${ENV} \
+ros2 launch warehouse_automation_pkg glocalization_action_server.launch.py env:=${ENV} \
     > >(ts '[%Y%m%d%H%M%S]' > "$LOG_DIR/warehouse_nodes_${ENV}.log") 2>&1 &
 
 # ==== Clone webpage repository ====
@@ -142,5 +117,9 @@ if [ $ENV == "sim" ]; then
     sleep 5
 fi
 
-
 echo "[!] All processes launched. Check logs in $LOG_DIR"
+
+# ==== Start warehouse manager ====
+cd ~/ros2_ws/src/warehouse_project/nav2_apps/scripts
+./wh_manager.py --ros-args -p config_file:=../config/wh_manager_${ENV}.yaml
+# ./wh_manager.py --ros-args -p config_file:=../config/wh_manager_sim.yaml
